@@ -1,0 +1,225 @@
+import { ProfileData, SkillCategory } from '../types/portfolio';
+
+export const DEFAULT_SKILLS: SkillCategory[] = [
+  {
+    id: 'skill-cfd',
+    category: 'CFD & Aerodynamics',
+    items: [
+      'ANSYS Fluent',
+      'Ansys SpaceClaim',
+      'Ansys Meshing',
+      'XFLR5',
+      'SST k-omega / k-epsilon / LES',
+      'Polyhedral & Boundary Layer Meshing',
+    ],
+  },
+  {
+    id: 'skill-cad',
+    category: 'CAD & Structural FEA',
+    items: [
+      'Fusion 360',
+      'Structural FEA',
+      '3D Assembly & Surfacing',
+      'Composite Layup & Fabrication',
+      'Onshape',
+    ],
+  },
+  {
+    id: 'skill-prog',
+    category: 'Programming & AI Automation',
+    items: [
+      'Python',
+      'FastAPI',
+      'Whisper Speech-to-Text',
+      'LLM APIs',
+      'Engineering Workflow Automation',
+    ],
+  },
+  {
+    id: 'skill-lang',
+    category: 'Languages',
+    items: ['Polish (Native)', 'English (Professional Technical)'],
+  },
+];
+
+export const INITIAL_PORTFOLIO_DATA: ProfileData = {
+  name: "Hubert Łokieć",
+  title: "Aerospace & Mechanical Engineer | CFD, CAD & Python Automation",
+  bio: "",
+  avatarUrl: "",
+  links: {
+    linkedin: "",
+    github: "",
+    onshape: "",
+    youtube: "",
+    email: "",
+    cvUrl: "",
+  },
+  experiences: [
+    {
+      id: "exp-1",
+      role: "Design Engineer / Intern",
+      organization: "Company Name",
+      period: "09.2024 – Present",
+      description: "",
+    },
+    {
+      id: "exp-2",
+      role: "R&D / Engineering Assistant",
+      organization: "Organization / University Lab",
+      period: "06.2023 – 08.2024",
+      description: "",
+    },
+  ],
+  education: [
+    {
+      id: "edu-1",
+      degree: "Master of Science (M.Sc.)",
+      institution: "Poznań University of Technology",
+      period: "2023 – 2025",
+      details: "Thesis: 4-Person VTOL UAV Aircraft Design Project (Aerodynamic & CFD Analysis)",
+    },
+    {
+      id: "edu-2",
+      degree: "Bachelor of Science (B.Sc.)",
+      institution: "Poznań University of Technology",
+      period: "2021 – 2025",
+      details: "Thesis: Simulation Analysis of the Impact of Pre-Chamber Geometry in a Turbulent Jet Ignition System on Combustion Parameters",
+    },
+  ],
+  skills: DEFAULT_SKILLS,
+  projects: [
+    {
+      id: "aircraft-msc",
+      title: "Aircraft Design & Simulation [M.Sc. Project]",
+      subtitle: "Full-scale aircraft development with aerodynamic analysis and CAD",
+      category: "Aerospace & Simulations",
+      year: "2025",
+      isTeamProject: true,
+      teamSize: 4,
+      teamDescription: "Master's degree capstone project completed collaboratively in a 4-person engineering team.",
+      myRole: "My Individual Scope: Aerodynamic analysis & polar curves in XFLR5, fluid dynamics & structural simulations in ANSYS, and selected CAD sub-assembly modeling in Fusion 360.",
+      myTools: ["XFLR5", "ANSYS Fluent", "Fusion 360", "Structural FEA"],
+      scopeCards: [
+        {
+          id: "scope-xflr5",
+          title: "XFLR5 Aerodynamics",
+          badge: "My Scope",
+          description: "- **2D & 3D Panel Method Analysis:** Airfoil polar curve envelopes, zero-lift pitching moments, lift-to-drag optimization, and longitudinal static margin stability calculations.",
+        },
+        {
+          id: "scope-ansys",
+          title: "ANSYS CFD & Structural Analysis",
+          badge: "My Scope",
+          description: "- **Geometry Preparation & Domain Extraction:** Cleaned and optimized VTOL UAV half-model CAD geometry in Ansys SpaceClaim for fluid domain extraction.\n- **Multi-Domain Volume Meshing:** Generated a 5.65M-cell polyhedral mesh in Ansys Meshing with cylindrical rotor zones for transition angle studies.\n- **CFD Simulation Execution:** Configured the SST k-omega model in Ansys Fluent across 9 flight configurations (0°, 45°, 90° tilt at 11 m/s).\n- **Post-Processing & Load Evaluation:** Extracted lift, drag, pitching moments, and pressure-center shifts to evaluate structural flight loads.",
+        },
+      ],
+      description: "",
+      links: [
+        { label: "Project Summary (PDF)", url: "" },
+      ],
+      keySpecs: [
+        { label: "Collaboration", value: "4-Person Team" },
+        { label: "Personal Scope", value: "XFLR5, ANSYS, CAD" },
+        { label: "Analysis Tools", value: "XFLR5 & ANSYS" },
+        { label: "Modeling", value: "Fusion 360" },
+      ],
+      keyMetrics: [],
+      ndaNote: "Academic capstone project — selected proprietary geometry and load parameters generalized.",
+      media: [
+        {
+          id: "m-plane-cad",
+          title: "Aircraft Assembly Photo",
+          type: "photo",
+          caption: "Complete aircraft assembly and fabricated components.",
+        },
+        {
+          id: "m-plane-xflr5",
+          title: "XFLR5 Aerodynamic Polar Curves",
+          type: "chart",
+          caption: "Lift-to-drag ratios, pitching moment curves, and boundary layer analysis from XFLR5.",
+        },
+        {
+          id: "m-plane-ansys",
+          title: "ANSYS CFD Pressure & Flow Contours",
+          type: "simulation",
+          caption: "ANSYS 3D volume mesh and transonic/subsonic surface pressure distribution.",
+        },
+      ],
+      customNotes: "",
+    },
+    {
+      id: "ai-secretary",
+      title: "AI Secretary System",
+      subtitle: "Intelligent voice & task automation assistant",
+      category: "Artificial Intelligence & Software",
+      year: "2025",
+      isTeamProject: false,
+      myRole: "Full Architecture & Development",
+      myTools: ["Python", "FastAPI", "Whisper Speech-to-Text", "LLM APIs", "Calendar/Task Automation"],
+      description: "",
+      links: [
+        { label: "GitHub Code Repository", url: "", isPrimary: true },
+      ],
+      keySpecs: [
+        { label: "Architecture", value: "Voice-driven LLM Agent" },
+        { label: "Pipeline", value: "STT → Agent Logic → Actions" },
+        { label: "Integrations", value: "Tasks & Scheduling" },
+      ],
+      keyMetrics: [],
+      ndaNote: "",
+      media: [
+        {
+          id: "m-ai-arch",
+          title: "System Architecture Flow",
+          type: "chart",
+          caption: "Audio ingestion, transcript processing, context retrieval, and action dispatch flow.",
+        },
+        {
+          id: "m-ai-ui",
+          title: "Interface & Voice Visualizer",
+          type: "photo",
+          caption: "Voice activation UI and execution summary display.",
+        },
+      ],
+      customNotes: "",
+    },
+    {
+      id: "tji-simulation-bsc",
+      title: "Turbulent Jet Ignition (TJI) Simulation [B.Sc. Thesis]",
+      subtitle: "CFD investigation of pre-chamber intake orifices and flame propagation",
+      category: "Combustion & Fluid Dynamics",
+      year: "2023",
+      isTeamProject: false,
+      myRole: "Individual Bachelor's Degree Research",
+      myTools: ["ANSYS Fluent", "CFD Polyhedral Meshing", "Turbulence Modeling (k-epsilon / LES)", "Combustion Kinetics"],
+      description: "",
+      links: [
+        { label: "Thesis Report Summary", url: "", isPrimary: true },
+      ],
+      keySpecs: [
+        { label: "Scope", value: "B.Sc. Engineering Thesis" },
+        { label: "Subject", value: "Turbulent Jet Ignition" },
+        { label: "CFD Solver", value: "ANSYS Fluent" },
+        { label: "Investigation", value: "Intake orifice diameter & angle" },
+      ],
+      keyMetrics: [],
+      ndaNote: "Academic research thesis — selected experimental calibration parameters generalized.",
+      media: [
+        {
+          id: "m-tji-mesh",
+          title: "Pre-chamber Orifice CFD Mesh",
+          type: "simulation",
+          caption: "Refined boundary layer mesh around the pre-chamber nozzle orifices.",
+        },
+        {
+          id: "m-tji-velocity",
+          title: "Turbulent Velocity Jet Vectors",
+          type: "simulation",
+          caption: "Velocity magnitude contours showing high-speed turbulent reactive jet penetration into the main chamber.",
+        },
+      ],
+      customNotes: "",
+    },
+  ],
+};

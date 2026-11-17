@@ -1,0 +1,221 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable hardened primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Only the verified portfolio owner can write/edit/delete
+    function isSiteOwner() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'h.lokiecc@gmail.com';
+    }
+
+    function isValidLinksMap(links) {
+      return links is map
+        && links.keys().hasOnly(['linkedin', 'github', 'onshape', 'youtube', 'email', 'cvUrl'])
+        && (!('linkedin' in links) || (links.linkedin is string && links.linkedin.size() <= 500))
+        && (!('github' in links) || (links.github is string && links.github.size() <= 500))
+        && (!('onshape' in links) || (links.onshape is string && links.onshape.size() <= 500))
+        && (!('youtube' in links) || (links.youtube is string && links.youtube.size() <= 500))
+        && (!('email' in links) || (links.email is string && links.email.size() <= 200))
+        && (!('cvUrl' in links) || (links.cvUrl is string && links.cvUrl.size() <= 500));
+    }
+
+    function isValidPortfolio(data) {
+      return data.keys().hasAll([
+          'ownerUid',
+          'name',
+          'title',
+          'bio',
+          'links',
+          'experiences',
+          'education',
+          'projects',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerUid',
+          'name',
+          'title',
+          'bio',
+          'links',
+          'experiences',
+          'education',
+          'skills',
+          'projects',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.ownerUid is string
+        && data.ownerUid == request.auth.uid
+        && data.ownerUid.size() <= 128
+        && data.name is string
+        && data.name.size() <= 150
+        && data.title is string
+        && data.title.size() <= 200
+        && data.bio is string
+        && data.bio.size() <= 10000
+        && isValidLinksMap(data.links)
+        && data.experiences is list
+        && data.experiences.size() <= 30
+        && (data.experiences.size() == 0 || data.experiences[0] is map)
+        && data.education is list
+        && data.education.size() <= 20
+        && (data.education.size() == 0 || data.education[0] is map)
+        && (!('skills' in data) || (data.skills is list && data.skills.size() <= 12 && (data.skills.size() == 0 || data.skills[0] is map)))
+        && data.projects is list
+        && data.projects.size() <= 30
+        && (data.projects.size() == 0 || data.projects[0] is map)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidMedia(data) {
+      return data.keys().hasAll([
+          'ownerUid',
+          'projectId',
+          'title',
+          'type',
+          'caption',
+          'dataUrl',
+          'order',
+          'isPublic',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerUid',
+          'projectId',
+          'title',
+          'type',
+          'caption',
+          'dataUrl',
+          'order',
+          'isPublic',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.ownerUid is string
+        && data.ownerUid == request.auth.uid
+        && data.ownerUid.size() <= 128
+        && data.projectId is string
+        && data.projectId.size() >= 1
+        && data.projectId.size() <= 128
+        && data.title is string
+        && data.title.size() <= 200
+        && data.type is string
+        && data.type in ['cad', 'simulation', 'photo', 'chart', 'avatar']
+        && data.caption is string
+        && data.caption.size() <= 1000
+        && data.dataUrl is string
+        && data.dataUrl.size() <= 950000
+        && data.order is number
+        && data.order >= 0
+        && data.order <= 1000
+        && data.isPublic is bool
+        && data.isPublic == true
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Main portfolio document: Public read-only for visitors, owner-only write
+    match /portfolios/{portfolioId} {
+      allow get: if isValidId(portfolioId) && portfolioId == 'main';
+      allow list: if false;
+
+      allow create: if isSiteOwner()
+        && isValidId(portfolioId)
+        && portfolioId == 'main'
+        && isValidPortfolio(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isSiteOwner()
+        && isValidId(portfolioId)
+        && portfolioId == 'main'
+        && isValidPortfolio(incoming())
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'name',
+          'title',
+          'bio',
+          'links',
+          'experiences',
+          'education',
+          'skills',
+          'projects',
+          'updatedAt'
+        ]);
+
+      allow delete: if false;
+
+      // Subcollection for compressed photos & avatar (each under 1MB)
+      match /media/{mediaId} {
+        allow get: if isValidId(portfolioId)
+          && portfolioId == 'main'
+          && isValidId(mediaId)
+          && existing().isPublic == true;
+
+        allow list: if portfolioId == 'main'
+          && existing().isPublic == true;
+
+        allow create: if isSiteOwner()
+          && isValidId(portfolioId)
+          && portfolioId == 'main'
+          && isValidId(mediaId)
+          && isValidMedia(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/portfolios/$(portfolioId));
+
+        allow update: if isSiteOwner()
+          && isValidId(portfolioId)
+          && portfolioId == 'main'
+          && isValidId(mediaId)
+          && isValidMedia(incoming())
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'projectId',
+            'title',
+            'type',
+            'caption',
+            'dataUrl',
+            'order',
+            'isPublic',
+            'updatedAt'
+          ]);
+
+        allow delete: if isSiteOwner()
+          && isValidId(portfolioId)
+          && portfolioId == 'main'
+          && isValidId(mediaId);
+      }
+    }
+  }
+}

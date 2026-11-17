@@ -1,0 +1,6 @@
+{
+  "name": "Engineering Portfolio & Showcase",
+  "description": "Clean engineering portfolio showcasing aerospace design, AI systems, CFD simulations, and interactive Onshape CAD models.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

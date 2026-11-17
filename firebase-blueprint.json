@@ -1,0 +1,154 @@
+{
+  "entities": {
+    "Portfolio": {
+      "title": "Portfolio",
+      "description": "Publicly readable engineering portfolio configuration, biography, resume, and project descriptions managed exclusively by the owner.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the portfolio owner.",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Portfolio owner's display name.",
+          "maxLength": 150
+        },
+        "title": {
+          "type": "string",
+          "description": "Professional headline.",
+          "maxLength": 200
+        },
+        "bio": {
+          "type": "string",
+          "description": "About Me biography text.",
+          "maxLength": 10000
+        },
+        "links": {
+          "type": "object",
+          "description": "Social and external contact links."
+        },
+        "experiences": {
+          "type": "array",
+          "description": "List of engineering work experience items."
+        },
+        "education": {
+          "type": "array",
+          "description": "List of academic degrees and thesis details."
+        },
+        "skills": {
+          "type": "array",
+          "description": "Categorized core engineering skills and tech stack shown on the home page."
+        },
+        "projects": {
+          "type": "array",
+          "description": "List of portfolio projects with specifications, links, scope cards, and optional metrics."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of initial publish."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update."
+        }
+      },
+      "required": [
+        "ownerUid",
+        "name",
+        "title",
+        "bio",
+        "links",
+        "experiences",
+        "education",
+        "projects",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MediaAsset": {
+      "title": "MediaAsset",
+      "description": "Individual compressed photo or portrait asset stored separately to stay well below Firestore's 1MB document limit.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the portfolio owner.",
+          "maxLength": 128
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Target project ID or 'profile' for portrait avatar.",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Photo title.",
+          "maxLength": 200
+        },
+        "type": {
+          "type": "string",
+          "enum": ["cad", "simulation", "photo", "chart", "avatar"],
+          "description": "Media category."
+        },
+        "caption": {
+          "type": "string",
+          "description": "Photo caption or notes.",
+          "maxLength": 1000
+        },
+        "dataUrl": {
+          "type": "string",
+          "description": "Compressed image data URL.",
+          "maxLength": 950000
+        },
+        "order": {
+          "type": "number",
+          "description": "Sort order within project gallery."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Whether visitors can view this media asset."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerUid",
+        "projectId",
+        "title",
+        "type",
+        "caption",
+        "dataUrl",
+        "order",
+        "isPublic",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/portfolios/{portfolioId}": {
+      "schema": {
+        "$ref": "#/entities/Portfolio"
+      },
+      "description": "Main published portfolio document ('main'), publicly readable by visitors and writable only by the authenticated owner."
+    },
+    "/portfolios/{portfolioId}/media/{mediaId}": {
+      "schema": {
+        "$ref": "#/entities/MediaAsset"
+      },
+      "description": "Portfolio portrait and project gallery photos, publicly readable by visitors and writable only by the authenticated owner."
+    }
+  }
+}
