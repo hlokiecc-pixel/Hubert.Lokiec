@@ -20,9 +20,20 @@ import {
   savePortfolioToFirestore,
   subscribePublishedPortfolio,
 } from './services/portfolioService';
-import { Github, Edit3, Lock, CheckCircle2, AlertCircle, X, CloudUpload } from 'lucide-react';
+import { Github, Edit3, CheckCircle2, AlertCircle, X, CloudUpload } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'engineering_portfolio_data_v1';
+
+function isStudioEnvironment(): boolean {
+  if (import.meta.env.DEV) return true;
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname.toLowerCase();
+  return (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host.endsWith('.run.app')
+  );
+}
 
 function sanitizeLoadedPortfolio(parsed: ProfileData): ProfileData {
   const updatedEducation = (parsed.education || []).map((edu) => {
@@ -163,12 +174,18 @@ export default function App() {
 
   const autoMigratedRef = useRef<boolean>(false);
 
+  const canEditHere = isStudioEnvironment();
+
   const isOwner = Boolean(
-    user && user.emailVerified && user.email?.toLowerCase() === OWNER_EMAIL.toLowerCase()
+    canEditHere &&
+      user &&
+      user.emailVerified &&
+      user.email?.toLowerCase() === OWNER_EMAIL.toLowerCase()
   );
 
-  // Listen for Firebase Auth state
+  // Listen for Firebase Auth state (only inside AI Studio / local dev)
   useEffect(() => {
+    if (!canEditHere) return;
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (!currentUser) {
@@ -177,7 +194,7 @@ export default function App() {
       }
     });
     return () => unsub();
-  }, []);
+  }, [canEditHere]);
 
   // Subscribe to published Firestore portfolio (public read)
   useEffect(() => {
@@ -201,7 +218,14 @@ export default function App() {
 
   // Automatically publish localStorage texts & photos on first owner login if cloud doc does not exist yet
   useEffect(() => {
-    if (!isOwner || !user || !cloudLoaded || hasPublishedPortfolio || autoMigratedRef.current) {
+    if (
+      !canEditHere ||
+      !isOwner ||
+      !user ||
+      !cloudLoaded ||
+      hasPublishedPortfolio ||
+      autoMigratedRef.current
+    ) {
       return;
     }
 
@@ -260,6 +284,7 @@ export default function App() {
   }, [portfolioData.projects]);
 
   const handleOwnerLogin = async () => {
+    if (!canEditHere) return;
     setCloudNotice(null);
     try {
       await signInWithPopup(auth, googleProvider);
@@ -269,14 +294,28 @@ export default function App() {
         return;
       }
       console.error('Owner sign-in failed:', err);
+
+      let message = 'Logowanie Google nie powiodło się. Upewnij się, że okno logowania nie jest zablokowane.';
+      if (code === 'auth/unauthorized-domain') {
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'ta domena';
+        message = `Domena "${currentHost}" nie jest jeszcze autoryzowana w Firebase Authentication (Settings → Authorized domains).`;
+      } else if (code === 'auth/popup-blocked') {
+        message = 'Przeglądarka zablokowała okno logowania Google. Zezwól na wyskakujące okna (pop-up) dla tej strony.';
+      } else if (code === 'auth/operation-not-allowed') {
+        message = 'Logowanie przez Google nie jest włączone w konsoli Firebase Authentication.';
+      } else if (code) {
+        message = `Logowanie Google nie powiodło się (${code}). Sprawdź konsolę przeglądarki.`;
+      }
+
       setCloudNotice({
         type: 'error',
-        text: 'Logowanie Google nie powiodło się. Upewnij się, że okno logowania nie jest zablokowane.',
+        text: message,
       });
     }
   };
 
   const handleOwnerLogout = async () => {
+    if (!canEditHere) return;
     try {
       await signOut(auth);
       setIsEditModalOpen(false);
@@ -421,7 +460,7 @@ export default function App() {
     portfolioData.projects[0];
 
   const showPendingLocalPublishNotice =
-    cloudLoaded && !hasPublishedPortfolio && hasLocalStoredData && !isOwner && !user;
+    canEditHere && cloudLoaded && !hasPublishedPortfolio && hasLocalStoredData && !isOwner && !user;
 
   return (
     <div className="min-h-screen bg-slate-100/70 flex flex-col font-sans text-slate-800">
@@ -432,16 +471,16 @@ export default function App() {
         isDetailView={currentView === 'project-detail'}
         projectTitle={currentProject?.title}
         isOwner={isOwner}
-        signedInEmail={user?.email || null}
-        isSavingCloud={isSavingCloud}
+        signedInEmail={canEditHere ? user?.email || null : null}
+        isSavingCloud={canEditHere ? isSavingCloud : false}
         onGoHome={handleGoHome}
-        onOpenEdit={() => isOwner && setIsEditModalOpen(true)}
-        onOpenDeployGuide={() => isOwner && setIsDeployModalOpen(true)}
-        onOwnerLogin={handleOwnerLogin}
-        onOwnerLogout={handleOwnerLogout}
+        onOpenEdit={canEditHere ? () => isOwner && setIsEditModalOpen(true) : undefined}
+        onOpenDeployGuide={canEditHere ? () => isOwner && setIsDeployModalOpen(true) : undefined}
+        onOwnerLogin={canEditHere ? handleOwnerLogin : undefined}
+        onOwnerLogout={canEditHere ? handleOwnerLogout : undefined}
       />
 
-      {/* One-time notice for the owner to publish existing local browser data to Firestore */}
+      {/* One-time notice for the owner to publish existing local browser data to Firestore (AI Studio only) */}
       {showPendingLocalPublishNotice && (
         <div className="bg-amber-50 border-b border-amber-200 text-amber-950 text-xs px-4 py-2.5">
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -461,8 +500,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Non-owner signed-in read-only notice */}
-      {user && !isOwner && (
+      {/* Non-owner signed-in read-only notice (AI Studio only) */}
+      {canEditHere && user && !isOwner && (
         <div className="bg-slate-800 text-slate-200 text-xs px-4 py-2 border-b border-slate-700">
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <span>
@@ -557,41 +596,35 @@ export default function App() {
 
       {/* Minimal Engineering Footer */}
       <footer className="border-t border-slate-200 bg-white py-6 px-4 text-xs text-slate-500">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div
+          className={`max-w-6xl mx-auto flex flex-col sm:flex-row items-center gap-4 ${
+            isOwner ? 'justify-between' : 'justify-center'
+          }`}
+        >
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">{portfolioData.name || 'Portfolio'}</span>
             <span>·</span>
-            <span>Engineering & Research Showcase</span>
+            <span>Engineering &amp; Research Showcase</span>
           </div>
 
-          <div className="flex items-center gap-4">
-            {isOwner ? (
-              <>
-                <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="text-slate-600 hover:text-slate-900 inline-flex items-center gap-1 font-medium"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit Content</span>
-                </button>
-                <button
-                  onClick={() => setIsDeployModalOpen(true)}
-                  className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 font-semibold"
-                >
-                  <Github className="w-3.5 h-3.5" />
-                  <span>GitHub Pages Deployment Guide</span>
-                </button>
-              </>
-            ) : !user ? (
+          {isOwner && (
+            <div className="flex items-center gap-4">
               <button
-                onClick={handleOwnerLogin}
-                className="text-slate-400 hover:text-slate-700 inline-flex items-center gap-1 font-medium transition-colors"
+                onClick={() => setIsEditModalOpen(true)}
+                className="text-slate-600 hover:text-slate-900 inline-flex items-center gap-1 font-medium"
               >
-                <Lock className="w-3 h-3" />
-                <span>Owner Login</span>
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Edit Content</span>
               </button>
-            ) : null}
-          </div>
+              <button
+                onClick={() => setIsDeployModalOpen(true)}
+                className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 font-semibold"
+              >
+                <Github className="w-3.5 h-3.5" />
+                <span>GitHub Pages Deployment Guide</span>
+              </button>
+            </div>
+          )}
         </div>
       </footer>
 
