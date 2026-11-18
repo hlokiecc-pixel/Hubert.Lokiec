@@ -109,26 +109,28 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     normalizedSpecs.push({ label: 'Modeling', value: 'Fusion 360' });
   }
 
-  // Fallback scope cards if not yet defined
+  // Fallback scope cards only for legacy aircraft project without stored cards
   const scopeCards: ScopeCard[] =
     project.scopeCards && project.scopeCards.length > 0
       ? project.scopeCards
-      : [
-          {
-            id: 'scope-xflr5',
-            title: 'XFLR5 Aerodynamics',
-            badge: 'My Scope',
-            description:
-              '2D and 3D panel method analysis, airfoil polar curve envelopes, zero-lift pitching moments, lift-to-drag optimization, and longitudinal static margin stability calculations.',
-          },
-          {
-            id: 'scope-ansys',
-            title: 'ANSYS CFD & Structural Analysis',
-            badge: 'My Scope',
-            description:
-              'Computational fluid dynamics 3D volume mesh generation, transonic/subsonic boundary layer transitions, and wing spar stress & deflection evaluation under critical flight load factors.',
-          },
-        ];
+      : isAircraftProject
+        ? [
+            {
+              id: 'scope-xflr5',
+              title: 'XFLR5 Aerodynamics',
+              badge: 'My Scope',
+              description:
+                '2D and 3D panel method analysis, airfoil polar curve envelopes, zero-lift pitching moments, lift-to-drag optimization, and longitudinal static margin stability calculations.',
+            },
+            {
+              id: 'scope-ansys',
+              title: 'ANSYS CFD & Structural Analysis',
+              badge: 'My Scope',
+              description:
+                'Computational fluid dynamics 3D volume mesh generation, transonic/subsonic boundary layer transitions, and wing spar stress & deflection evaluation under critical flight load factors.',
+            },
+          ]
+        : [];
 
   // Filter media items that have preview URLs
   const mediaList: MediaItem[] = (project.media || []).filter((m) => m && m.previewUrl);
@@ -273,9 +275,9 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     if (!onUpdateProject) return;
     const newCard: ScopeCard = {
       id: `scope-${Date.now()}`,
-      title: 'New Scope Area',
-      badge: 'My Scope',
-      description: '- **Key Responsibility:** Describe your methodology, tools, and results here.',
+      title: project.isTeamProject ? 'New Scope Area' : 'New System Module',
+      badge: project.isTeamProject ? 'My Scope' : 'Architecture',
+      description: '- **Key Detail:** Describe verified behavior, formulas, or boundaries here.',
     };
     onUpdateProject({
       ...project,
@@ -508,38 +510,71 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         </div>
       )}
 
-      {/* Top Banner: Collaboration & Role Spotlight */}
-      {project.isTeamProject && (
+      {/* Quiet Inline Prototype Status, Provenance & Languages Strip (Zero-Pill Typography) */}
+      {(project.statusLabel || project.buildOrigin || (project.languages && project.languages.length > 0)) && (
+        <div className="bg-white rounded-xl border border-slate-200/90 px-5 py-3.5 shadow-xs flex flex-col gap-1.5 text-xs">
+          {project.statusLabel && (
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-slate-900 font-semibold tabular-nums">
+              <span>{project.statusLabel}</span>
+              {project.buildOrigin && (
+                <>
+                  <span className="text-slate-300 font-normal" aria-hidden="true">·</span>
+                  <span className="text-slate-600 font-medium">{project.buildOrigin}</span>
+                </>
+              )}
+            </div>
+          )}
+          {project.languages && project.languages.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-500 font-mono">
+              <span className="uppercase tracking-wider text-slate-400 font-sans font-semibold">Languages:</span>
+              <span className="text-slate-700">{project.languages.join(' · ')}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Top Banner: Team Scope OR Standalone System Architecture Breakdown */}
+      {(project.isTeamProject || scopeCards.length > 0 || isOwner) && (
         <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
               <span className="p-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-100">
-                <Users className="w-4 h-4" />
+                {project.isTeamProject ? (
+                  <Users className="w-4 h-4" />
+                ) : (
+                  <Layers className="w-4 h-4" />
+                )}
               </span>
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
-                  Master's Degree Capstone Project · 4-Person Engineering Team
+                  {project.isTeamProject
+                    ? "Master's Degree Capstone Project · 4-Person Engineering Team"
+                    : 'System Architecture, Mechanics & Audit Breakdown'}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {project.teamDescription ||
-                    'Comprehensive aircraft design developed collaboratively by a team of 4 engineers.'}
+                  {project.isTeamProject
+                    ? project.teamDescription ||
+                      'Comprehensive aircraft design developed collaboratively by a team of 4 engineers.'
+                    : project.myRole || project.subtitle}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                <Layers className="w-3.5 h-3.5 text-blue-600" />
-                <span>CAD Modeling: <strong>Fusion 360</strong></span>
-              </div>
+              {project.isTeamProject && (
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                  <Layers className="w-3.5 h-3.5 text-blue-600" />
+                  <span>CAD Modeling: <strong>Fusion 360</strong></span>
+                </div>
+              )}
               {isOwner && (
                 <button
                   onClick={handleAddScopeCard}
                   className="text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1 transition-colors"
-                  title="Add another My Scope card"
+                  title={project.isTeamProject ? 'Add another My Scope card' : 'Add another architecture breakdown card'}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Add Scope</span>
+                  <span className="hidden sm:inline">{project.isTeamProject ? 'Add Scope' : 'Add Module Card'}</span>
                 </button>
               )}
             </div>
@@ -547,8 +582,10 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
           {/* Technical Scope Breakdown Cards (Bullet List + Structured Inline Editor) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {scopeCards.map((scope) => {
+            {scopeCards.map((scope, sIdx) => {
               const isEditingThis = editingScopeId === scope.id;
+              const isOddLastCard =
+                scopeCards.length % 2 === 1 && sIdx === scopeCards.length - 1;
               const renderBlocks = parseScopeRenderBlocks(scope.description);
               const canSuggestAutoSplit =
                 scopeEditMode === 'bullets' &&
@@ -559,8 +596,8 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 <div
                   key={scope.id}
                   className={`p-4 bg-slate-50/80 border border-slate-200/90 rounded-lg space-y-2.5 relative group ${
-                    isEditingThis ? 'md:col-span-2 bg-white shadow-sm ring-1 ring-blue-200' : ''
-                  }`}
+                    isEditingThis || isOddLastCard ? 'md:col-span-2' : ''
+                  } ${isEditingThis ? 'bg-white shadow-sm ring-1 ring-blue-200' : ''}`}
                 >
                   {isEditingThis ? (
                     /* Edit Mode for Scope Card */
@@ -784,13 +821,12 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                   ) : (
                     /* Display Mode for Scope Card */
                     <>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>
+                      <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 pb-2">
+                        <div className="text-xs font-bold text-slate-900">
                           <span>{scope.title}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[10px] font-mono text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
                             {scope.badge || 'My Scope'}
                           </span>
                           {isOwner && (
@@ -1227,8 +1263,8 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             )}
           </div>
 
-          {/* 2B. OPTIONAL KEY METRICS & RESULTS CARD (Hidden from visitors when empty!) */}
-          {((project.keyMetrics && project.keyMetrics.length > 0) || isOwner) && (
+          {/* 2B. OPTIONAL KEY METRICS & RESULTS CARD (Hidden on Margaret and hidden from visitors when empty) */}
+          {((project.keyMetrics && project.keyMetrics.length > 0) || (isOwner && project.id !== 'ai-secretary')) && (
             <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs space-y-3.5">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                 <div className="flex items-center gap-2">
@@ -1505,7 +1541,7 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                         <Edit3 className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 text-blue-600 transition-opacity" />
                       )}
                     </div>
-                    <div className="font-semibold text-slate-900 text-xs mt-0.5 break-words">
+                    <div className="font-semibold text-slate-900 text-xs mt-0.5 break-words tabular-nums">
                       {spec.value || <span className="text-slate-300 italic">Empty</span>}
                     </div>
                   </div>

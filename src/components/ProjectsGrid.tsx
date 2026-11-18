@@ -187,11 +187,13 @@ export const ProjectsGrid: React.FC<ProjectsGridProps> = ({
                         <div className="flex items-center gap-1.5">
                           {project.isTeamProject ? (
                             <span className="text-slate-700 font-medium">Team of {project.teamSize}</span>
+                          ) : project.statusLabel ? (
+                            <span className="text-slate-600 font-medium">Beta Prototype</span>
                           ) : (
                             <span className="text-slate-600">Individual</span>
                           )}
                           <span aria-hidden="true">·</span>
-                          <span className="font-mono text-slate-600">{project.year}</span>
+                          <span className="font-mono text-slate-600 tabular-nums">{project.year}</span>
                         </div>
 
                         <span className="text-blue-600 group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-0.5 font-medium text-[11px]">

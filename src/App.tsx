@@ -5,7 +5,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut, User } from 'firebase/auth';
-import { INITIAL_PORTFOLIO_DATA, DEFAULT_SKILLS } from './data/defaultData';
+import {
+  INITIAL_PORTFOLIO_DATA,
+  DEFAULT_SKILLS,
+  MARGARET_PROJECT,
+  needsMargaretUpgrade,
+} from './data/defaultData';
 import { ProfileData, ProjectData, SkillCategory } from './types/portfolio';
 import { Header } from './components/Header';
 import { AboutCard } from './components/AboutCard';
@@ -113,6 +118,10 @@ function sanitizeLoadedPortfolio(parsed: ProfileData): ProfileData {
       };
     }
 
+    if (needsMargaretUpgrade(proj)) {
+      return MARGARET_PROJECT;
+    }
+
     return {
       ...proj,
       keySpecs: nextSpecs,
@@ -173,6 +182,8 @@ export default function App() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const autoMigratedRef = useRef<boolean>(false);
+  const margaretSyncedRef = useRef<boolean>(false);
+  const [needsMargaretCloudSync, setNeedsMargaretCloudSync] = useState<boolean>(false);
 
   const canEditHere = isStudioEnvironment();
 
@@ -201,6 +212,8 @@ export default function App() {
     const unsub = subscribePublishedPortfolio((exists, cloudData) => {
       setCloudLoaded(true);
       if (exists && cloudData) {
+        const hadOutdatedMargaret = (cloudData.projects || []).some(needsMargaretUpgrade);
+        setNeedsMargaretCloudSync(hadOutdatedMargaret);
         const sanitized = sanitizeLoadedPortfolio(cloudData);
         setHasPublishedPortfolio(true);
         setPortfolioData(sanitized);
@@ -211,6 +224,7 @@ export default function App() {
         }
       } else {
         setHasPublishedPortfolio(false);
+        setNeedsMargaretCloudSync(false);
       }
     });
     return () => unsub();
@@ -252,7 +266,50 @@ export default function App() {
     };
 
     migrateLocalToCloud();
-  }, [isOwner, user, cloudLoaded, hasPublishedPortfolio, portfolioData]);
+  }, [canEditHere, isOwner, user, cloudLoaded, hasPublishedPortfolio, portfolioData]);
+
+  // Automatically sync upgraded Margaret project to Firestore if cloud still held the blank placeholder
+  useEffect(() => {
+    if (
+      !canEditHere ||
+      !isOwner ||
+      !user ||
+      !cloudLoaded ||
+      !hasPublishedPortfolio ||
+      !needsMargaretCloudSync ||
+      margaretSyncedRef.current
+    ) {
+      return;
+    }
+
+    margaretSyncedRef.current = true;
+    const syncMargaretToCloud = async () => {
+      setIsSavingCloud(true);
+      try {
+        await savePortfolioToFirestore(portfolioData, user.uid);
+        setNeedsMargaretCloudSync(false);
+        setCloudNotice({
+          type: 'success',
+          text: 'Projekt Margaret został zaktualizowany zgodnie z audytem kodu (usunięto Key Metrics, dodano status Beta v0.1.0, mechaniki i ograniczenia) oraz zapisany w bazie danych.',
+        });
+      } catch (err) {
+        console.error('Failed to auto-sync Margaret project:', err);
+        margaretSyncedRef.current = false;
+      } finally {
+        setIsSavingCloud(false);
+      }
+    };
+
+    syncMargaretToCloud();
+  }, [
+    canEditHere,
+    isOwner,
+    user,
+    cloudLoaded,
+    hasPublishedPortfolio,
+    needsMargaretCloudSync,
+    portfolioData,
+  ]);
 
   // Auto-dismiss success notices
   useEffect(() => {

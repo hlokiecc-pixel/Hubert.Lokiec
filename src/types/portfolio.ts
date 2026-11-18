@@ -64,6 +64,10 @@ export interface ProjectData {
   keySpecs: KeySpec[];
   keyMetrics?: KeySpec[];
   ndaNote?: string;
+  statusLabel?: string;
+  buildOrigin?: string;
+  languages?: string[];
+  contentRevision?: number;
   media: MediaItem[];
   customNotes?: string;
 }
